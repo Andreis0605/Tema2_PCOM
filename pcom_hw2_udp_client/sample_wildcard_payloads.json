@@ -1,0 +1,43 @@
+[{
+        "description": "topic {upb/precis/elevator/1/people} - type {INT} - value{5}",
+        "payload_base64": "dXBiL3ByZWNpcy9lbGV2YXRvci8xL3Blb3BsZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU="
+}, {
+        "description": "topic {upb/precis/elevator/1/floor} - type {INT} - value{4}",
+        "payload_base64": "dXBiL3ByZWNpcy9lbGV2YXRvci8xL2Zsb29yAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQ="
+}, {
+        "description": "topic {upb/precis/elevator/2/people} - type {INT} - value{0}",
+        "payload_base64": "dXBiL3ByZWNpcy9lbGV2YXRvci8yL3Blb3BsZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAA="
+}, {
+        "description": "topic {upb/precis/elevator/2/floor} - type {INT} - value{0}",
+        "payload_base64": "dXBiL3ByZWNpcy9lbGV2YXRvci8yL2Zsb29yAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAA="
+}, {
+        "description": "topic {upb/precis/100/temperature} - type {SHORT_REAL} - value{24.30}",
+        "payload_base64": "dXBiL3ByZWNpcy8xMDAvdGVtcGVyYXR1cmUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCX4="
+}, {
+        "description": "topic {upb/precis/100/humidity} - type {SHORT_REAL} - value{29.87}",
+        "payload_base64": "dXBiL3ByZWNpcy8xMDAvaHVtaWRpdHkAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABC6s="
+}, {
+        "description": "topic {upb/ec/100/temperature} - type {SHORT_REAL} - value{21.30}",
+        "payload_base64": "dXBiL2VjLzEwMC90ZW1wZXJhdHVyZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCFI="
+}, {
+        "description": "topic {upb/ec/100/humidity} - type {SHORT_REAL} - value{26.11}",
+        "payload_base64": "dXBiL2VjLzEwMC9odW1pZGl0eQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABCjM="
+}, {
+        "description": "topic {upb/ec/100/pressure} - type {FLOAT} - value{1013.2512}",
+        "payload_base64": "dXBiL2VjLzEwMC9wcmVzc3VyZQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAACanCAE"
+}, {
+        "description": "topic {upb/precis/100/pressure} - type {FLOAT} - value{1043.1249}",
+        "payload_base64": "dXBiL3ByZWNpcy8xMDAvcHJlc3N1cmUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAACfKxEE"
+}, {
+        "description": "topic {upb/precis/100/schedule/monday/8} - type {STRING} - value{Protocoale De Comunicatie}",
+        "payload_base64": "dXBiL3ByZWNpcy8xMDAvc2NoZWR1bGUvbW9uZGF5LzgAAAAAAAAAAAAAAAAAAAAAAAADUHJvdG9jb2FsZSBEZSBDb211bmljYXRpZQA="
+}, {
+        "description": "topic {upb/ec/100/schedule/tuesday/12} - type {STRING} - value{Protocoale De Comunicatie}",
+        "payload_base64": "dXBiL2VjLzEwMC9zY2hlZHVsZS90dWVzZGF5LzEyAAAAAAAAAAAAAAAAAAAAAAAAAAADUHJvdG9jb2FsZSBEZSBDb211bmljYXRpZQA="
+}, {
+        "description": "topic {upb/precis/100/schedule/monday/8} - type {STRING} - value{Protocoale De Comunicatie}",
+        "payload_base64": "dXBiL3ByZWNpcy8xMDAvc2NoZWR1bGUvbW9uZGF5LzgAAAAAAAAAAAAAAAAAAAAAAAADUHJvdG9jb2FsZSBEZSBDb211bmljYXRpZQA="
+}, {
+        "description": "topic {upb/ec/100/schedule/tuesday/12} - type {STRING} - value{Protocoale De Comunicatie}",
+        "payload_base64": "dXBiL2VjLzEwMC9zY2hlZHVsZS90dWVzZGF5LzEyAAAAAAAAAAAAAAAAAAAAAAAAAAADUHJvdG9jb2FsZSBEZSBDb211bmljYXRpZQA="
+}]
