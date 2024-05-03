@@ -18,10 +18,25 @@ typedef struct TCP_CLIENT
     bool conected;
 } tcp_client;
 
+// aux function to print the details of clients
+void print_clients(vector<tcp_client> clients)
+{
+    for (auto &client : clients)
+    {
+        cout << "Client ID: " << client.id << '\n';
+        cout << "Client socket: " << client.client_socket << '\n';
+        cout << "Topics: \n";
+        for (auto &topic : client.topics)
+        {
+            cout << topic << '\n';
+        }
+        cout << client.conected << "\n\n";
+    }
+}
 // function used to add a client to the clients lists, or reconnect a client
 // returns 1 on a new connection or reconnection
 // returns 0 on a connection with the same id
-int process_connection(char *id, int client_socket, vector<tcp_client> clients)
+int process_connection(char *id, int client_socket, vector<tcp_client> &clients)
 {
     for (auto &client : clients)
     {
@@ -30,6 +45,7 @@ int process_connection(char *id, int client_socket, vector<tcp_client> clients)
             // reconnection atempt
             if (client.conected == false)
             {
+                //cout << "old client\n";
                 client.conected = true;
                 client.client_socket = client_socket;
                 return 1;
@@ -41,6 +57,7 @@ int process_connection(char *id, int client_socket, vector<tcp_client> clients)
 
     // we got a new client
 
+    //cout << "new client\n";
     // create the client entry
     tcp_client aux;
     aux.client_socket = client_socket;
@@ -49,7 +66,54 @@ int process_connection(char *id, int client_socket, vector<tcp_client> clients)
 
     // add it to the list of clients
     clients.push_back(aux);
+    // cout << clients.size() << '\n';
     return 1;
+}
+
+// function that subscribes a new client to a topic
+// the match is based on the current socket of the client
+// returns 1 on succes or 0 if the client is already subscribed
+int subscribe_client_to_topic(int client_socket, char *topic, vector<tcp_client> &clients)
+{
+    string aux(topic);
+
+    for (auto &client : clients)
+    {
+        if (client.client_socket == client_socket)
+        {
+            bool ok = true;
+            for (auto &topic : client.topics)
+            {
+                if (topic == aux)
+                {
+                    ok = false;
+                    return 0;
+                }
+            }
+            if (ok)
+            {
+                client.topics.push_back(aux);
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+// function tahat marks a client as disconnected from the server
+//  returns 1 on succes or 0 on error
+int disconnect_client(int client_socket, vector<tcp_client> &clients)
+{
+    for (auto &client : clients)
+    {
+        if (client.client_socket == client_socket)
+        {
+            client.conected = false;
+            cout << "Client " << client.id << " disconnected.\n";
+            return 1;
+        }
+    }
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -75,7 +139,7 @@ int main(int argc, char **argv)
     // open the 2 sockets for UDP and TCP
 
     // open the udp socket and make a buffer for messages
-    char *udp_buff = (char *)calloc(1800, sizeof(char));
+    char *udp_buff = (char *)calloc(2000, sizeof(char));
     int udp_socket;
     if ((udp_socket = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
@@ -99,7 +163,7 @@ int main(int argc, char **argv)
     }
 
     // open the tcp socket for receiving data from clients and make a buffer for the messages
-    char *tcp_buff = (char *)calloc(1800, sizeof(char));
+    char *tcp_buff = (char *)calloc(2000, sizeof(char));
     int tcp_socket;
     if ((tcp_socket = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -173,14 +237,16 @@ int main(int argc, char **argv)
                     // TODO: close the socket in the tcp_clients list
                     close(fds[i].fd);
                 }
-
+                memset(tcp_buff,0,12);
                 break;
             }
         }
         else if (fds[1].revents & POLLIN)
         {
             // TODO: treat the udp message
-            ;
+            //cout << "mesaj udp primit\n";
+            int bytes_from = recvfrom(udp_socket, udp_buff, 2000, MSG_DONTWAIT, (struct sockaddr *)&udp_addr, &udp_len);
+            //cout << "Trec peste mesaj";
         }
         else if (fds[2].revents & POLLIN)
         {
@@ -191,27 +257,71 @@ int main(int argc, char **argv)
 
             // got the client, now add it to the list
             rc = process_connection(tcp_buff, new_client_socket, clients);
+            // cout << clients.size() << '\n';
             if (rc == 1)
             {
                 // new client message
                 cout << "New client " << tcp_buff << " connected from " << inet_ntoa(tcp_addr.sin_addr) << ":" << ntohs(tcp_addr.sin_port) << ".\n";
-
                 // TODO: add it to the fds
+                struct pollfd aux;
+                aux.fd = new_client_socket;
+                aux.events = POLLIN;
+                fds.push_back(aux);
             }
             else
             {
                 // already have that id
                 cout << "Client " << tcp_buff << " already connected.\n";
 
-                //prepare the message
-                memcpy(tcp_buff,"disconnect!\0", 12);
+                // prepare the message
+                memcpy(tcp_buff, "disconnect!\0", 12);
                 send_all(new_client_socket, tcp_buff);
             }
+            memset(tcp_buff,0,1800);
+            //print_clients(clients);
         }
         else
         {
-            // TODO: Process the input from a client
-            ;
+            for (long unsigned int i = 3; i < fds.size(); i++)
+            {
+                if (fds[i].revents & POLLIN)
+                {
+                    recv_all(fds[i].fd, tcp_buff);
+                    if (strstr(tcp_buff, "subscribe"))
+                    {
+                        //cout << "SUBSCRIBE REQUEST\n";
+                        rc = subscribe_client_to_topic(fds[i].fd, tcp_buff + 10, clients);
+                        if (rc == 1)
+                        {
+                            //cout << "ok done";
+                            memcpy(tcp_buff, "ok\0", 3);
+                            send_all(fds[i].fd, tcp_buff);
+                            //print_clients(clients);
+                        }
+                        else
+                        {
+                            //cout << "not ok";
+                            memcpy(tcp_buff, "ok\0", 3);
+                            send_all(fds[i].fd, tcp_buff);
+                        }
+                    }
+                    if (strstr(tcp_buff, "want to disconnect"))
+                    {
+                        // disconnect a client from the server
+                        int aux_socket = fds[i].fd;
+                        rc = disconnect_client(fds[i].fd, clients);
+                        if (rc == 1)
+                        {
+                            //cout << "client dis\n";
+                            memcpy(tcp_buff, "ok\0", 3);
+                            send_all(fds[i].fd, tcp_buff);
+                        }
+                        fds.erase(fds.begin() + i);
+                        close(aux_socket);
+                    }
+                    memset(tcp_buff,0,1800);
+                }
+            }
         }
     }
 

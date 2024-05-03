@@ -68,16 +68,35 @@ int main(int argc, char **argv)
 
         if (fds[0].revents & POLLIN)
         {
-            // read what was put tu the stdin
+            // read what was put to the stdin
             char buffer[200];
             cin.getline(buffer, 200);
 
             if (strstr(buffer, "exit"))
             {
                 // TODO: send a message to the server in order to disconect
-                send_all(tcp_socket, "want to disconnect");
-                break;
+                memcpy(tcp_buff, "want to disconnect\0", 19);
+                send_all(tcp_socket, tcp_buff);
+                memset(tcp_buff, 0 , 19);
+                recv_all(tcp_socket, tcp_buff);
+                if (strstr(tcp_buff, "ok"))
+                    break;
             }
+
+            if (strstr(buffer, "subscribe "))
+            {
+                send_all(tcp_socket, buffer);
+                recv_all(tcp_socket, tcp_buff);
+                if (strstr(tcp_buff, "ok"))
+                    cout << "Subscribed to topic " << ((char *)(strstr(buffer, "subscribe ") + 10)) << '\n';
+                else
+                    cout << "N-a mers";
+            }
+        }
+        else
+        {
+            recv_all(tcp_socket, tcp_buff);
+            if(strstr(tcp_buff, "disconnect!")) break;
         }
     }
 
