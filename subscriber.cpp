@@ -77,12 +77,23 @@ int main(int argc, char **argv)
                 // TODO: send a message to the server in order to disconect
                 memcpy(tcp_buff, "want to disconnect\0", 19);
                 send_all(tcp_socket, tcp_buff);
-                memset(tcp_buff, 0 , 19);
+                memset(tcp_buff, 0, 19);
                 recv_all(tcp_socket, tcp_buff);
                 if (strstr(tcp_buff, "ok"))
                     break;
             }
-
+            if (strstr(buffer, "unsubscribe "))
+            {
+                send_all(tcp_socket, buffer);
+                recv_all(tcp_socket, tcp_buff);
+                if (strstr(tcp_buff, "ok"))
+                {
+                    cout << "Unsubscribed to topic " << ((char *)(strstr(buffer, "unsubscribe ") + 12)) << '\n';
+                    continue;
+                }
+                else
+                    cout << "N-a mers";
+            }
             if (strstr(buffer, "subscribe "))
             {
                 send_all(tcp_socket, buffer);
@@ -96,7 +107,8 @@ int main(int argc, char **argv)
         else
         {
             recv_all(tcp_socket, tcp_buff);
-            if(strstr(tcp_buff, "disconnect!")) break;
+            if (strstr(tcp_buff, "disconnect!"))
+                break;
         }
     }
 

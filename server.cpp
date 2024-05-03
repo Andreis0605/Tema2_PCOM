@@ -45,7 +45,7 @@ int process_connection(char *id, int client_socket, vector<tcp_client> &clients)
             // reconnection atempt
             if (client.conected == false)
             {
-                //cout << "old client\n";
+                // cout << "old client\n";
                 client.conected = true;
                 client.client_socket = client_socket;
                 return 1;
@@ -57,8 +57,8 @@ int process_connection(char *id, int client_socket, vector<tcp_client> &clients)
 
     // we got a new client
 
-    //cout << "new client\n";
-    // create the client entry
+    // cout << "new client\n";
+    //  create the client entry
     tcp_client aux;
     aux.client_socket = client_socket;
     strcpy(aux.id, id);
@@ -93,6 +93,37 @@ int subscribe_client_to_topic(int client_socket, char *topic, vector<tcp_client>
             if (ok)
             {
                 client.topics.push_back(aux);
+                return 1;
+            }
+        }
+    }
+    return 0;
+}
+
+// function that unsubscribes a new client to a topic
+// the match is based on the current socket of the client
+// returns 1 on succes or 0 if the client is already subscribed
+int unsubscribe_client_to_topic(int client_socket, char *topic, vector<tcp_client> &clients)
+{
+    string aux(topic);
+
+    for (auto &client : clients)
+    {
+        if (client.client_socket == client_socket)
+        {
+            long int to_delete;
+            bool found = false;
+            for (long unsigned int i = 0; i < client.topics.size(); i++)
+            {
+                if (client.topics[i] == aux)
+                {
+                    to_delete = i;
+                    found = true;
+                }
+            }
+            if (found)
+            {
+                client.topics.erase(client.topics.begin() + to_delete);
                 return 1;
             }
         }
@@ -237,16 +268,16 @@ int main(int argc, char **argv)
                     // TODO: close the socket in the tcp_clients list
                     close(fds[i].fd);
                 }
-                memset(tcp_buff,0,12);
+                memset(tcp_buff, 0, 12);
                 break;
             }
         }
         else if (fds[1].revents & POLLIN)
         {
             // TODO: treat the udp message
-            //cout << "mesaj udp primit\n";
+            // cout << "mesaj udp primit\n";
             int bytes_from = recvfrom(udp_socket, udp_buff, 2000, MSG_DONTWAIT, (struct sockaddr *)&udp_addr, &udp_len);
-            //cout << "Trec peste mesaj";
+            // cout << "Trec peste mesaj";
         }
         else if (fds[2].revents & POLLIN)
         {
@@ -277,8 +308,8 @@ int main(int argc, char **argv)
                 memcpy(tcp_buff, "disconnect!\0", 12);
                 send_all(new_client_socket, tcp_buff);
             }
-            memset(tcp_buff,0,1800);
-            //print_clients(clients);
+            memset(tcp_buff, 0, 1800);
+            // print_clients(clients);
         }
         else
         {
@@ -287,21 +318,40 @@ int main(int argc, char **argv)
                 if (fds[i].revents & POLLIN)
                 {
                     recv_all(fds[i].fd, tcp_buff);
-                    if (strstr(tcp_buff, "subscribe"))
+                    if (strstr(tcp_buff, "unsubscribe"))
                     {
-                        //cout << "SUBSCRIBE REQUEST\n";
-                        rc = subscribe_client_to_topic(fds[i].fd, tcp_buff + 10, clients);
+                        // cout << "SUBSCRIBE REQUEST\n";
+                        rc = unsubscribe_client_to_topic(fds[i].fd, tcp_buff + 12, clients);
                         if (rc == 1)
                         {
-                            //cout << "ok done";
+                            // cout << "ok done";
                             memcpy(tcp_buff, "ok\0", 3);
                             send_all(fds[i].fd, tcp_buff);
                             //print_clients(clients);
                         }
                         else
                         {
-                            //cout << "not ok";
+                            // cout << "not ok";
+                            memcpy(tcp_buff, "no\0", 3);
+                            send_all(fds[i].fd, tcp_buff);
+                        }
+                        continue;
+                    }
+                    if (strstr(tcp_buff, "subscribe"))
+                    {
+                        // cout << "SUBSCRIBE REQUEST\n";
+                        rc = subscribe_client_to_topic(fds[i].fd, tcp_buff + 10, clients);
+                        if (rc == 1)
+                        {
+                            // cout << "ok done";
                             memcpy(tcp_buff, "ok\0", 3);
+                            send_all(fds[i].fd, tcp_buff);
+                            //print_clients(clients);
+                        }
+                        else
+                        {
+                            // cout << "not ok";
+                            memcpy(tcp_buff, "no\0", 3);
                             send_all(fds[i].fd, tcp_buff);
                         }
                     }
@@ -312,14 +362,14 @@ int main(int argc, char **argv)
                         rc = disconnect_client(fds[i].fd, clients);
                         if (rc == 1)
                         {
-                            //cout << "client dis\n";
+                            // cout << "client dis\n";
                             memcpy(tcp_buff, "ok\0", 3);
                             send_all(fds[i].fd, tcp_buff);
                         }
                         fds.erase(fds.begin() + i);
                         close(aux_socket);
                     }
-                    memset(tcp_buff,0,1800);
+                    memset(tcp_buff, 0, 1800);
                 }
             }
         }
