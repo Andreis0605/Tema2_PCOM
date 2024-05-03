@@ -185,7 +185,7 @@ int main(int argc, char **argv)
         else if (fds[2].revents & POLLIN)
         {
             // TODO: accept a new connection
-            /*int new_client_socket = accept(fds[2].fd, (struct sockaddr *)&tcp_addr, &tcp_len);
+            int new_client_socket = accept(fds[2].fd, (struct sockaddr *)&tcp_addr, &tcp_len);
 
             recv_all(new_client_socket, tcp_buff);
 
@@ -194,19 +194,19 @@ int main(int argc, char **argv)
             if (rc == 1)
             {
                 // new client message
-                cout << "New client " << tcp_buff << " connected from " << inet_ntoa(tcp_addr.sin_addr) << ":" << ntohs(tcp_addr.sin_port) << ".";
+                cout << "New client " << tcp_buff << " connected from " << inet_ntoa(tcp_addr.sin_addr) << ":" << ntohs(tcp_addr.sin_port) << ".\n";
 
                 // TODO: add it to the fds
             }
             else
             {
                 // already have that id
-                cout << "Client " << tcp_buff << " already connected.";
+                cout << "Client " << tcp_buff << " already connected.\n";
 
                 //prepare the message
                 memcpy(tcp_buff,"disconnect!\0", 12);
                 send_all(new_client_socket, tcp_buff);
-            }*/
+            }
         }
         else
         {
