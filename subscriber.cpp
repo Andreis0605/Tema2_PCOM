@@ -14,7 +14,7 @@ int main(int argc, char **argv)
     setvbuf(stdout, NULL, _IONBF, BUFSIZ);
 
     char *stdin_buff = (char *)calloc(1800, sizeof(char));
-    char *tcp_buff = (char *)calloc(1800, sizeof(char));
+    char *tcp_buff = (char *)calloc(2000, sizeof(char));
 
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
@@ -109,6 +109,11 @@ int main(int argc, char **argv)
             recv_all(tcp_socket, tcp_buff);
             if (strstr(tcp_buff, "disconnect!"))
                 break;
+            else
+            {
+                cout << tcp_buff;
+                memset(tcp_buff,0,2000);
+            }
         }
     }
 

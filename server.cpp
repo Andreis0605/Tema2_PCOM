@@ -150,7 +150,42 @@ int disconnect_client(int client_socket, vector<tcp_client> &clients)
 // TODO: function that matches two topics
 // includes the wildcard mechanic
 
+bool is_topic_match(const std::string topic, const std::string subscription)
+{
+
+    std::string regexSubscription = subscription;
+    std::regex_replace(regexSubscription, std::regex("\\*"), ".*");
+    std::regex_replace(regexSubscription, std::regex("\\+"), "[^/]*");
+
+    std::string regexPattern = "^" + regexSubscription + "$";
+
+    std::regex regex(regexPattern);
+
+    return std::regex_match(topic, regex);
+}
+
 // TODO: function that sends the messages to the clients
+void send_to_clients(char *topic, char *message, vector<tcp_client> clients)
+{
+    string aux(topic);
+
+    for (auto &client : clients)
+    {
+        if (client.conected == true)
+        {
+            bool sent = false;
+            for (long unsigned int i = 0; i < client.topics.size(); i++ && !sent)
+            {
+                if (is_topic_match(client.topics[i], aux))
+                {
+                    // cout << "Found match" << '\n';
+                    send_all(client.client_socket, message);
+                    sent = true;
+                }
+            }
+        }
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -291,7 +326,7 @@ int main(int argc, char **argv)
             memcpy(topic, udp_buff, 50);
             unsigned char data_type;
             data_type = udp_buff[50];
-            cout << (int)data_type << '\n';
+            // cout << (int)data_type << '\n';
 
             // TODO: create the message for the clients
             rc = 0; // will keep the length of the buffer at any point.
@@ -348,9 +383,9 @@ int main(int argc, char **argv)
 
                 // get the data, convert it to string, append it
                 uint16_t value = ((unsigned char)udp_buff[51] << 8) | (unsigned char)udp_buff[52];
-                cout << value << "\n";
+                // cout << value << "\n";
                 float float_value = (float)value / 100.0f;
-                cout << float_value << '\n';
+                // cout << float_value << '\n';
 
                 rc += snprintf(tcp_buff + rc, 2000, "%.2f", float_value);
                 tcp_buff[rc] = '\0';
@@ -383,22 +418,27 @@ int main(int argc, char **argv)
                 rc += snprintf(tcp_buff + rc, 2000, "%.15g", value);
                 tcp_buff[rc] = '\0';
             }
-            
+
             if ((int)data_type == 3)
             {
-                 memcpy(tcp_buff + rc,"STRING\0", 7);
+                memcpy(tcp_buff + rc, "STRING\0", 7);
                 rc += 6;
                 memcpy(tcp_buff + rc, " - \0", 4);
                 rc += 3;
 
                 strncat(tcp_buff, udp_buff + 51, 1500);
+                rc += strnlen(udp_buff + 51, 1500);
             }
-            
 
-            //cout << tcp_buff << ' ' << rc << '\n';
-            // TODO: Send the message to the tcp clients suscribe to the topic
-            
+            memcpy(tcp_buff + rc, "\n\0", 2);
+            rc++;
+
+            // cout << tcp_buff << ' ' << rc << '\n';
+            //  TODO: Send the message to the tcp clients suscribe to the topic
+            send_to_clients(topic, tcp_buff, clients);
             //  cout << "Trec peste mesaj";
+            memset(tcp_buff, 0, 2000);
+            memset(udp_buff, 0, 2000);
         }
         else if (fds[2].revents & POLLIN)
         {
