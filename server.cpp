@@ -147,6 +147,11 @@ int disconnect_client(int client_socket, vector<tcp_client> &clients)
     return 0;
 }
 
+// TODO: function that matches two topics
+// includes the wildcard mechanic
+
+// TODO: function that sends the messages to the clients
+
 int main(int argc, char **argv)
 {
 
@@ -276,8 +281,124 @@ int main(int argc, char **argv)
         {
             // TODO: treat the udp message
             // cout << "mesaj udp primit\n";
-            int bytes_from = recvfrom(udp_socket, udp_buff, 2000, MSG_DONTWAIT, (struct sockaddr *)&udp_addr, &udp_len);
-            // cout << "Trec peste mesaj";
+            memset(udp_buff, 0, 2000);
+            rc = recvfrom(udp_socket, udp_buff, 2000, MSG_DONTWAIT, (struct sockaddr *)&udp_addr, &udp_len);
+            // cout << rc << ' ' << strlen(udp_buff) << '\n';
+
+            // TODO: extract the parts of the message
+            // get the topic
+            char topic[51];
+            memcpy(topic, udp_buff, 50);
+            unsigned char data_type;
+            data_type = udp_buff[50];
+            cout << (int)data_type << '\n';
+
+            // TODO: create the message for the clients
+            rc = 0; // will keep the length of the buffer at any point.
+            memset(tcp_buff, 0, 2000);
+
+            // get he ip
+            inet_ntop(AF_INET, &(udp_addr.sin_addr), tcp_buff, INET_ADDRSTRLEN);
+            rc += strlen(tcp_buff);
+            memcpy(tcp_buff + rc, ":\0", 2);
+            rc++;
+
+            // get the port
+            char port_str[6];
+            sprintf(port_str, "%d", ntohs(udp_addr.sin_port));
+            memcpy(tcp_buff + rc, port_str, strlen(port_str));
+            rc += strlen(port_str);
+            memcpy(tcp_buff + rc, " - \0", 4);
+            rc += 3;
+
+            // copy the topic
+            memcpy(tcp_buff + rc, topic, strlen(topic) + 1);
+            rc += strlen(topic);
+            memcpy(tcp_buff + rc, " - \0", 4);
+            rc += 3;
+
+            // copy the data type and the data itself
+            if ((int)data_type == 0)
+            {
+                memcpy(tcp_buff + rc, "INT\0", 4);
+                rc += 3;
+                memcpy(tcp_buff + rc, " - \0", 4);
+                rc += 3;
+
+                // get the data, convert it to string, append it
+                unsigned char sign = udp_buff[51];
+                if (sign == 1)
+                {
+                    memcpy(tcp_buff + rc, "-\0", 2);
+                    rc++;
+                }
+
+                unsigned char aux_buff[4] = {(unsigned char)udp_buff[52], (unsigned char)udp_buff[53], (unsigned char)udp_buff[54], (unsigned char)udp_buff[55]};
+                uint32_t number = (aux_buff[0] << 24) | (aux_buff[1] << 16) | (aux_buff[2] << 8) | aux_buff[3];
+                rc += snprintf(tcp_buff + rc, 2000, "%u", number);
+                tcp_buff[rc] = '\0';
+            }
+
+            if ((int)data_type == 1)
+            {
+                memcpy(tcp_buff + rc, "SHORT_REAL\0", 11);
+                rc += 10;
+                memcpy(tcp_buff + rc, " - \0", 4);
+                rc += 3;
+
+                // get the data, convert it to string, append it
+                uint16_t value = ((unsigned char)udp_buff[51] << 8) | (unsigned char)udp_buff[52];
+                cout << value << "\n";
+                float float_value = (float)value / 100.0f;
+                cout << float_value << '\n';
+
+                rc += snprintf(tcp_buff + rc, 2000, "%.2f", float_value);
+                tcp_buff[rc] = '\0';
+            }
+
+            if ((int)data_type == 2)
+            {
+                memcpy(tcp_buff + rc, "FLOAT\0", 6);
+                rc += 5;
+                memcpy(tcp_buff + rc, " - \0", 4);
+                rc += 3;
+
+                // get the data, convert it to string, append it
+                uint8_t sign = (unsigned char)udp_buff[51];
+                uint32_t number = ((unsigned char)udp_buff[52] << 24) | ((unsigned char)udp_buff[53] << 16) | ((unsigned char)udp_buff[54] << 8) | (unsigned char)udp_buff[55];
+                uint8_t power = (unsigned char)udp_buff[56];
+
+                if (sign == 1)
+                {
+                    memcpy(tcp_buff + rc, "-\0", 2);
+                    rc++;
+                }
+
+                double value = (double)number;
+                for (int i = 0; i < power; i++)
+                {
+                    value /= (double)10.0;
+                }
+
+                rc += snprintf(tcp_buff + rc, 2000, "%.15g", value);
+                tcp_buff[rc] = '\0';
+            }
+            
+            if ((int)data_type == 3)
+            {
+                 memcpy(tcp_buff + rc,"STRING\0", 7);
+                rc += 6;
+                memcpy(tcp_buff + rc, " - \0", 4);
+                rc += 3;
+
+                strncat(tcp_buff, udp_buff + 51, 1500);
+            }
+            
+
+            //cout << tcp_buff << ' ' << rc << '\n';
+            // TODO: Send the message to the tcp clients suscribe to the topic
+            
+            //  cout << "Trec peste mesaj";
         }
         else if (fds[2].revents & POLLIN)
         {
@@ -327,7 +448,7 @@ int main(int argc, char **argv)
                             // cout << "ok done";
                             memcpy(tcp_buff, "ok\0", 3);
                             send_all(fds[i].fd, tcp_buff);
-                            //print_clients(clients);
+                            // print_clients(clients);
                         }
                         else
                         {
@@ -346,7 +467,7 @@ int main(int argc, char **argv)
                             // cout << "ok done";
                             memcpy(tcp_buff, "ok\0", 3);
                             send_all(fds[i].fd, tcp_buff);
-                            //print_clients(clients);
+                            // print_clients(clients);
                         }
                         else
                         {
