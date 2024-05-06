@@ -150,18 +150,91 @@ int disconnect_client(int client_socket, vector<tcp_client> &clients)
 // TODO: function that matches two topics
 // includes the wildcard mechanic
 
-bool is_topic_match(const std::string topic, const std::string subscription)
+bool is_topic_match(string topic, string subscription)
 {
+    char *to_check = new char[topic.length() + 1];
+    strcpy(to_check, topic.c_str());
 
-    std::string regexSubscription = subscription;
-    std::regex_replace(regexSubscription, std::regex("\\*"), ".*");
-    std::regex_replace(regexSubscription, std::regex("\\+"), "[^/]*");
+    char *reference = new char[subscription.length() + 1];
+    strcpy(reference, subscription.c_str());
 
-    std::string regexPattern = "^" + regexSubscription + "$";
+    char *to_check_token = strtok(to_check, "/");
 
-    std::regex regex(regexPattern);
+    vector<char *> to_check_vector, reference_vector;
 
-    return std::regex_match(topic, regex);
+    // cout<<"Primul token: \n";
+    while (to_check_token != nullptr)
+    {
+        // cout << to_check_token << '\n';
+        to_check_vector.push_back(to_check_token);
+        to_check_token = strtok(nullptr, "/");
+    }
+    // cout << "Al doilea token: \n";
+    char *reference_token = strtok(reference, "/");
+    while (reference_token != nullptr)
+    {
+        // cout << reference_token << '\n';
+        reference_vector.push_back(reference_token);
+        reference_token = strtok(nullptr, "/");
+    }
+
+    /*for (long unsigned int i = 0; i < to_check_vector.size(); i++)
+    {
+        cout << to_check_vector[i] << " ";
+    }
+    cout << '\n';
+    for (long unsigned int j = 0; j < reference_vector.size(); j++)
+    {
+        cout << reference_vector[j] << " ";
+    }
+    cout << '\n';
+    cout <<'\n';*/
+
+    long unsigned int i = 0, j = 0;
+    for (i = 0, j = 0; i < to_check_vector.size() && j < reference_vector.size();)
+    {
+        if (strstr(reference_vector[j], "*"))
+        {
+            // cout << "La steluta:  " << to_check_vector[i] << " " << reference_vector[j] << '\n';
+            if (j + 1 == reference_vector.size())
+                return true;
+            else
+            {
+                j++;
+                i++;
+                // cout << "De comparat: " << to_check_vector[i] << " " << reference_vector[j] << '\n';
+                while (i < to_check_vector.size() && strcmp(reference_vector[j], to_check_vector[i]) != 0)
+                {
+                    i++;
+                    // cout << "De comparat: " << to_check_vector[i] << " " << reference_vector[j] << '\n';
+                }
+                if (i == to_check_vector.size())
+                    return false;
+                // cout << "Dupa if: " << to_check_vector[i] << " " << reference_vector[j] << '\n';
+            }
+        }
+        else if (strstr(reference_vector[j], "+"))
+        {
+            // cout<< "La plus:  " << to_check_vector[i] << " " << reference_vector[j] << '\n';
+            i++;
+            j++;
+        }
+        else
+        {
+            // cout << "Normal:  " << to_check_vector[i] << " " << reference_vector[j] << '\n';
+            if (strcmp(reference_vector[j], to_check_vector[i]) == 0)
+            {
+                i++;
+                j++;
+            }
+            else
+                return false;
+        }
+    }
+
+    if(i == to_check_vector.size() && j == reference_vector.size()) return true;
+
+    return false;
 }
 
 // TODO: function that sends the messages to the clients
@@ -173,14 +246,14 @@ void send_to_clients(char *topic, char *message, vector<tcp_client> clients)
     {
         if (client.conected == true)
         {
-            bool sent = false;
-            for (long unsigned int i = 0; i < client.topics.size(); i++ && !sent)
+            for (long unsigned int i = 0; i < client.topics.size(); i++)
             {
-                if (is_topic_match(client.topics[i], aux))
+                if (is_topic_match(aux, client.topics[i]))
                 {
                     // cout << "Found match" << '\n';
                     send_all(client.client_socket, message);
-                    sent = true;
+                    // sent = true;
+                    break;
                 }
             }
         }
@@ -362,14 +435,15 @@ int main(int argc, char **argv)
 
                 // get the data, convert it to string, append it
                 unsigned char sign = udp_buff[51];
-                if (sign == 1)
+                unsigned char aux_buff[4] = {(unsigned char)udp_buff[52], (unsigned char)udp_buff[53], (unsigned char)udp_buff[54], (unsigned char)udp_buff[55]};
+                uint32_t number = (aux_buff[0] << 24) | (aux_buff[1] << 16) | (aux_buff[2] << 8) | aux_buff[3];
+
+                if (sign == 1 && number != 0)
                 {
                     memcpy(tcp_buff + rc, "-\0", 2);
                     rc++;
                 }
 
-                unsigned char aux_buff[4] = {(unsigned char)udp_buff[52], (unsigned char)udp_buff[53], (unsigned char)udp_buff[54], (unsigned char)udp_buff[55]};
-                uint32_t number = (aux_buff[0] << 24) | (aux_buff[1] << 16) | (aux_buff[2] << 8) | aux_buff[3];
                 rc += snprintf(tcp_buff + rc, 2000, "%u", number);
                 tcp_buff[rc] = '\0';
             }
@@ -403,7 +477,7 @@ int main(int argc, char **argv)
                 uint32_t number = ((unsigned char)udp_buff[52] << 24) | ((unsigned char)udp_buff[53] << 16) | ((unsigned char)udp_buff[54] << 8) | (unsigned char)udp_buff[55];
                 uint8_t power = (unsigned char)udp_buff[56];
 
-                if (sign == 1)
+                if (sign == 1 && number != 0)
                 {
                     memcpy(tcp_buff + rc, "-\0", 2);
                     rc++;
@@ -474,6 +548,7 @@ int main(int argc, char **argv)
         }
         else
         {
+            memset(tcp_buff, 0, 2000);
             for (long unsigned int i = 3; i < fds.size(); i++)
             {
                 if (fds[i].revents & POLLIN)
@@ -496,6 +571,7 @@ int main(int argc, char **argv)
                             memcpy(tcp_buff, "no\0", 3);
                             send_all(fds[i].fd, tcp_buff);
                         }
+                        // print_clients(clients);
                         continue;
                     }
                     if (strstr(tcp_buff, "subscribe"))
@@ -514,6 +590,7 @@ int main(int argc, char **argv)
                             // cout << "not ok";
                             memcpy(tcp_buff, "no\0", 3);
                             send_all(fds[i].fd, tcp_buff);
+                            // print_clients(clients);
                         }
                     }
                     if (strstr(tcp_buff, "want to disconnect"))
@@ -530,7 +607,7 @@ int main(int argc, char **argv)
                         fds.erase(fds.begin() + i);
                         close(aux_socket);
                     }
-                    memset(tcp_buff, 0, 1800);
+                    memset(tcp_buff, 0, 2000);
                 }
             }
         }

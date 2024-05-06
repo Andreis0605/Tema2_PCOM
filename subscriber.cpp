@@ -81,10 +81,12 @@ int main(int argc, char **argv)
                 recv_all(tcp_socket, tcp_buff);
                 if (strstr(tcp_buff, "ok"))
                     break;
+                memset(tcp_buff, 0, 2000);
             }
             if (strstr(buffer, "unsubscribe "))
             {
                 send_all(tcp_socket, buffer);
+                memset(tcp_buff, 0, 2000);
                 recv_all(tcp_socket, tcp_buff);
                 if (strstr(tcp_buff, "ok"))
                 {
@@ -93,27 +95,32 @@ int main(int argc, char **argv)
                 }
                 else
                     cout << "N-a mers";
+                memset(tcp_buff, 0, 2000);
             }
             if (strstr(buffer, "subscribe "))
             {
                 send_all(tcp_socket, buffer);
+                memset(tcp_buff, 0, 2000);
                 recv_all(tcp_socket, tcp_buff);
                 if (strstr(tcp_buff, "ok"))
                     cout << "Subscribed to topic " << ((char *)(strstr(buffer, "subscribe ") + 10)) << '\n';
                 else
                     cout << "N-a mers";
+                memset(tcp_buff, 0, 2000);
             }
         }
         else
         {
+            memset(tcp_buff,0,2000);
             recv_all(tcp_socket, tcp_buff);
             if (strstr(tcp_buff, "disconnect!"))
                 break;
             else
             {
                 cout << tcp_buff;
-                memset(tcp_buff,0,2000);
+                memset(tcp_buff, 0, 2000);
             }
+            memset(tcp_buff,0,2000);
         }
     }
 
