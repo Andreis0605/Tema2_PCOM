@@ -1,3 +1,4 @@
+# Implementarea temei pleca de la rezolvarea labolatorului 7
 # Tema 2 - PCOM
 
 ## Serverul
