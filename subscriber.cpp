@@ -16,6 +16,7 @@ int main(int argc, char **argv)
     char *stdin_buff = (char *)calloc(1800, sizeof(char));
     char *tcp_buff = (char *)calloc(2000, sizeof(char));
 
+    // get the client ip and port
     struct sockaddr_in serv_addr;
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr(argv[2]);
@@ -37,7 +38,6 @@ int main(int argc, char **argv)
         exit(0);
     }
     // send the connect request to the server
-
     if (connect(tcp_socket, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         perror("client unable to connect to the server");
@@ -74,56 +74,71 @@ int main(int argc, char **argv)
 
             if (strstr(buffer, "exit"))
             {
-                // TODO: send a message to the server in order to disconect
+                // send a message to the server in order to disconect
                 memcpy(tcp_buff, "want to disconnect\0", 19);
                 send_all(tcp_socket, tcp_buff);
+
+                // get the response from the server
                 memset(tcp_buff, 0, 19);
                 recv_all(tcp_socket, tcp_buff);
+
+                // if we can do it, close the client
                 if (strstr(tcp_buff, "ok"))
                     break;
                 memset(tcp_buff, 0, 2000);
             }
             if (strstr(buffer, "unsubscribe "))
             {
+                // send the unsubscribe request to the server
                 send_all(tcp_socket, buffer);
                 memset(tcp_buff, 0, 2000);
+
+                // get the server response
                 recv_all(tcp_socket, tcp_buff);
+
+                // process the response
                 if (strstr(tcp_buff, "ok"))
                 {
                     cout << "Unsubscribed to topic " << ((char *)(strstr(buffer, "unsubscribe ") + 12)) << '\n';
                     continue;
                 }
-                else
-                    cout << "N-a mers";
                 memset(tcp_buff, 0, 2000);
             }
             if (strstr(buffer, "subscribe "))
             {
+                // send the unsubscribe request to the server
                 send_all(tcp_socket, buffer);
                 memset(tcp_buff, 0, 2000);
+
+                // get the server response
                 recv_all(tcp_socket, tcp_buff);
+
+                // process the response
                 if (strstr(tcp_buff, "ok"))
                     cout << "Subscribed to topic " << ((char *)(strstr(buffer, "subscribe ") + 10)) << '\n';
-                else
-                    cout << "N-a mers";
                 memset(tcp_buff, 0, 2000);
             }
         }
         else
         {
-            memset(tcp_buff,0,2000);
+            // got a message from the server, process it
+            memset(tcp_buff, 0, 2000);
             recv_all(tcp_socket, tcp_buff);
+
             if (strstr(tcp_buff, "disconnect!"))
+                // got a disconnect request from the server, close the client
                 break;
             else
             {
+                // print the message from the server
                 cout << tcp_buff;
                 memset(tcp_buff, 0, 2000);
             }
-            memset(tcp_buff,0,2000);
+            memset(tcp_buff, 0, 2000);
         }
     }
 
+    // close the tcp socket
     close(tcp_socket);
 
     return 0;
