@@ -33,6 +33,7 @@ void print_clients(vector<tcp_client> clients)
         cout << client.conected << "\n\n";
     }
 }
+
 // function used to add a client to the clients lists, or reconnect a client
 // returns 1 on a new connection or reconnection
 // returns 0 on a connection with the same id
